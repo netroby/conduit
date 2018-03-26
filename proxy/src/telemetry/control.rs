@@ -24,6 +24,8 @@ pub struct MakeControl {
     flush_interval: Duration,
 
     process_ctx: Arc<ctx::Process>,
+
+    prometheus_labels: Option<Arc<str>>,
 }
 
 /// Handles the receipt of events.
@@ -77,11 +79,13 @@ impl MakeControl {
         rx: Receiver<Event>,
         flush_interval: Duration,
         process_ctx: &Arc<ctx::Process>,
+        prometheus_labels: Option<Arc<str>>,
     ) -> Self {
         Self {
             rx,
             flush_interval,
             process_ctx: Arc::clone(process_ctx),
+            prometheus_labels,
         }
     }
 
@@ -98,7 +102,8 @@ impl MakeControl {
         trace!("telemetry control flush_interval={:?}", self.flush_interval);
 
         let flush_timeout = Timeout::new(self.flush_interval, handle)?;
-        let (metrics_work, metrics_service) = prometheus::new();
+        let (metrics_work, metrics_service) =
+            prometheus::new(self.prometheus_labels);
         let push_metrics = Some(PushMetrics::new(self.process_ctx));
 
         Ok(Control {
